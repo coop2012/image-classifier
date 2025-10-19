@@ -18,11 +18,11 @@ from PIL import Image
 def load_model_and_preprocess(model_name):
     """Load model and matching preprocess function"""
     if model_name == "MobileNetV2":
-        return MobileNetV2(weights="imagenet"), mobilenet_preprocess
+        return MobileNetV2(weights="imagenet"), mobilenet_preprocess, (224, 224)
     elif model_name == "ResNet50":
-        return ResNet50(weights="imagenet"), resnet_preprocess
+        return ResNet50(weights="imagenet"), resnet_preprocess, (224, 224)
     elif model_name == "InceptionV3":
-        return InceptionV3(weights="imagenet"), inception_preprocess
+        return InceptionV3(weights="imagenet"), inception_preprocess, (299, 299)
     else:
         raise ValueError("Invalid model name")
 
@@ -34,11 +34,11 @@ def load_cached_model(model_name):
 # ----------------------------------------------------
 # IMAGE CLASSIFICATION FUNCTION
 # ----------------------------------------------------
-def classify_image(model, preprocess_input, uploaded_file):
+def classify_image(model, preprocess_input, uploaded_file, target_size):
     """Predict top 3 classes for an uploaded image"""
     try:
         img = Image.open(uploaded_file).convert("RGB")
-        img = img.resize((224, 224))
+        img = img.resize(target_size)
         img_array = image.img_to_array(img)
         img_array = np.expand_dims(img_array, axis=0)
         img_array = preprocess_input(img_array)
@@ -66,7 +66,7 @@ def main():
 
     # Load the chosen model
     with st.spinner(f"Loading {model_choice}..."):
-        model, preprocess_input = load_cached_model(model_choice)
+        model, preprocess_input, target_size = load_cached_model(model_choice)
 
     # Image upload
     uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
@@ -76,7 +76,7 @@ def main():
 
         if st.button("Classify Image"):
             with st.spinner("Classifying..."):
-                predictions = classify_image(model, preprocess_input, uploaded_file)
+                predictions = classify_image(model, preprocess_input, uploaded_file, target_size)
 
             if predictions:
                 st.success("✅ Prediction Complete!")
