@@ -1,11 +1,14 @@
 
 import numpy as np
 import streamlit as st
-from tensorflow.keras.applications.mobilenet_v2 import (
-    MobileNetV2, 
-    preprocess_input, 
-    decode_predictions
-    )
+from tensorflow.keras.applications import MobileNetV2, ResNet50, InceptionV3
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobilenet_preprocess
+from tensorflow.keras.applications.resnet50 import preprocess_input as resnet_preprocess
+from tensorflow.keras.applications.inception_v3 import preprocess_input as inception_preprocess
+from tensorflow.keras.applications.mobilenet_v2 import decode_predictions as mobilenet_decode
+from tensorflow.keras.applications.resnet50 import decode_predictions as resnet_decode
+from tensorflow.keras.applications.inception_v3 import decode_predictions as inception_decode
+
 from PIL import Image
 from PIL import ImageDraw, ImageFont
 
@@ -36,9 +39,15 @@ def main():
     st.set_page_config(page_title="Image Classifier", layout="centered")
     st.title("AI-Powered Image Classifier")
     st.write("Upload an image, and the model will classify it for you.")
+    model_choice = st.selectbox(
+        "Choose a model",
+        ["MobileNetV2", "ResNet50", "InceptionV3"]
+    )
     @st.cache_resource
-    def load_cached_model():
-        return load_model()
+    def load_cached_model(model_name):
+        return load_model(model_name)
+
+    model = load_cached_model(model_choice)
     
     model = load_cached_model()
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png"])
