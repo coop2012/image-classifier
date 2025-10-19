@@ -47,18 +47,21 @@ def main():
     st.set_page_config(page_title="Image Classifier", layout="centered")
     st.title("AI-Powered Image Classifier")
     st.write("Upload an image, and the model will classify it for you.")
+
+    # Let the user choose a model
     model_choice = st.selectbox(
         "Choose a model",
         ["MobileNetV2", "ResNet50", "InceptionV3"]
     )
+
     @st.cache_resource
     def load_cached_model(model_name):
         return load_model(model_name)
 
+    # ✅ Pass the chosen model name here
     model = load_cached_model(model_choice)
 
-    
-    model = load_cached_model()
+
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png"])
 
     if uploaded_file is not None:
