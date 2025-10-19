@@ -45,7 +45,7 @@ def main():
 
     if uploaded_file is not None:
         image = st.image(
-            uploaded_file, caption='Uploaded Image', use_column_width=True
+            uploaded_file, caption='Uploaded Image', use_container_width=True
         )
 
         btn = st.button("Classify Image")
