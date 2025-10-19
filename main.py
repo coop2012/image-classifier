@@ -1,23 +1,22 @@
-
-import numpy as np
 import streamlit as st
-from tensorflow.keras.applications import MobileNetV2, ResNet50, InceptionV3
+import numpy as np
+from tensorflow.keras.applications import (
+    MobileNetV2,
+    ResNet50,
+    InceptionV3
+)
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobilenet_preprocess
 from tensorflow.keras.applications.resnet50 import preprocess_input as resnet_preprocess
 from tensorflow.keras.applications.inception_v3 import preprocess_input as inception_preprocess
-from tensorflow.keras.applications.mobilenet_v2 import decode_predictions as mobilenet_decode
-from tensorflow.keras.applications.resnet50 import decode_predictions as resnet_decode
-from tensorflow.keras.applications.inception_v3 import decode_predictions as inception_decode
-
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.imagenet_utils import decode_predictions
 from PIL import Image
-from PIL import ImageDraw, ImageFont
 
-from tensorflow.keras.applications import MobileNetV2, ResNet50, InceptionV3
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobilenet_preprocess
-from tensorflow.keras.applications.resnet50 import preprocess_input as resnet_preprocess
-from tensorflow.keras.applications.inception_v3 import preprocess_input as inception_preprocess
-
-def load_model(model_name):
+# ----------------------------------------------------
+# MODEL LOADING FUNCTION
+# ----------------------------------------------------
+def load_model_and_preprocess(model_name):
+    """Load model and matching preprocess function"""
     if model_name == "MobileNetV2":
         return MobileNetV2(weights="imagenet"), mobilenet_preprocess
     elif model_name == "ResNet50":
@@ -27,67 +26,72 @@ def load_model(model_name):
     else:
         raise ValueError("Invalid model name")
 
+# Cache models so they don’t reload every time
+@st.cache_resource
+def load_cached_model(model_name):
+    return load_model_and_preprocess(model_name)
 
-def preprocess_image(image):
-    image = image.resize((224, 224))
-    image = np.array(image)
-
-    image = preprocess_input(image)
-    image = np.expand_dims(image, axis=0)
-    return image
-
-def classify_image(model, image):
+# ----------------------------------------------------
+# IMAGE CLASSIFICATION FUNCTION
+# ----------------------------------------------------
+def classify_image(model, preprocess_input, uploaded_file):
+    """Predict top 3 classes for an uploaded image"""
     try:
-        processed_image = preprocess_image(image)
-        predictions = model.predict(processed_image)
-        decoded_predictions = decode_predictions(predictions, top=6)[0]
-        return decoded_predictions
-    
-    except Exception as e:
-        st.error(f"Error classifying image: {str(e)}")
-        return None
-    
-def main():
-    st.set_page_config(page_title="Image Classifier", layout="centered")
-    st.title("AI-Powered Image Classifier")
-    st.write("Upload an image, and the model will classify it for you.")
+        img = Image.open(uploaded_file).convert("RGB")
+        img = img.resize((224, 224))
+        img_array = image.img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = preprocess_input(img_array)
 
-    # Let the user choose a model
-    model_choice = st.selectbox(
+        preds = model.predict(img_array)
+        decoded_preds = decode_predictions(preds, top=3)[0]
+        return decoded_preds
+    except Exception as e:
+        st.error(f"Error classifying image: {e}")
+        return None
+
+# ----------------------------------------------------
+# STREAMLIT APP
+# ----------------------------------------------------
+def main():
+    st.set_page_config(page_title="🧠 Image Classifier", layout="centered")
+    st.title("🧠 AI Image Classifier")
+    st.write("Upload an image and choose a deep learning model to classify it!")
+
+    # Model selection
+    model_choice = st.sidebar.selectbox(
         "Choose a model",
         ["MobileNetV2", "ResNet50", "InceptionV3"]
     )
 
-    @st.cache_resource
-    def load_cached_model(model_name):
-        return load_model(model_name)
+    # Load the chosen model
+    with st.spinner(f"Loading {model_choice}..."):
+        model, preprocess_input = load_cached_model(model_choice)
 
-    model, preprocess_input = load_cached_model(model_choice)
-
-
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png"])
+    # Image upload
+    uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
-        image = st.image(
-            uploaded_file, caption='Uploaded Image', use_container_width=True
-        )
+        st.image(uploaded_file, caption="Uploaded Image", use_container_width=True)
 
-        btn = st.button("Classify Image")
+        if st.button("Classify Image"):
+            with st.spinner("Classifying..."):
+                predictions = classify_image(model, preprocess_input, uploaded_file)
 
-        if btn:
-            with st.spinner("Analysing..."):
-                image = Image.open(uploaded_file)
-                predictions = classify_image(model, image)
+            if predictions:
+                st.success("✅ Prediction Complete!")
+                st.subheader("Top Predictions:")
 
-                if predictions:
-                    st.subheader("Predictions:")
-                    for _, label, score in predictions:
-                        label_name = label.replace("_", " ").title()
-                        st.write(f"**{label_name}: {score:.2%}**")
-                        st.progress(int(score * 100))
+                for pred_class, name, score in predictions:
+                    readable_name = name.replace("_", " ").title()
+                    st.write(f"**{readable_name}** — {score*100:.2f}% confidence")
+                    st.progress(int(score * 100))
 
+    st.markdown("---")
+    st.caption("Built with TensorFlow · Streamlit · 🧠 AI Image Classifier")
 
-
-
+# ----------------------------------------------------
+# RUN APP
+# ----------------------------------------------------
 if __name__ == "__main__":
     main()
