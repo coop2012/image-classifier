@@ -58,8 +58,9 @@ def main():
                 if predictions:
                     st.subheader("Predictions:")
                     for _, label, score in predictions:
-                        st.progress(score)
+                        
                         st.write(f"**{label}: {score:.2%}**")
+                        st.progress(int(score * 100))
 
 
 
