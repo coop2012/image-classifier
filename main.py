@@ -12,17 +12,21 @@ from tensorflow.keras.applications.inception_v3 import decode_predictions as inc
 from PIL import Image
 from PIL import ImageDraw, ImageFont
 
+from tensorflow.keras.applications import MobileNetV2, ResNet50, InceptionV3
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobilenet_preprocess
+from tensorflow.keras.applications.resnet50 import preprocess_input as resnet_preprocess
+from tensorflow.keras.applications.inception_v3 import preprocess_input as inception_preprocess
+
 def load_model(model_name):
     if model_name == "MobileNetV2":
-        return MobileNetV2(weights="imagenet")
+        return MobileNetV2(weights="imagenet"), mobilenet_preprocess
     elif model_name == "ResNet50":
-        from tensorflow.keras.applications import ResNet50
-        return ResNet50(weights="imagenet")
+        return ResNet50(weights="imagenet"), resnet_preprocess
     elif model_name == "InceptionV3":
-        from tensorflow.keras.applications import InceptionV3
-        return InceptionV3(weights="imagenet")
+        return InceptionV3(weights="imagenet"), inception_preprocess
     else:
-        raise ValueError(f"Unknown model: {model_name}")
+        raise ValueError("Invalid model name")
+
 
 def preprocess_image(image):
     image = image.resize((224, 224))
@@ -58,8 +62,7 @@ def main():
     def load_cached_model(model_name):
         return load_model(model_name)
 
-    # ✅ Pass the chosen model name here
-    model = load_cached_model(model_choice)
+    model, preprocess_input = load_cached_model(model_choice)
 
 
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png"])
